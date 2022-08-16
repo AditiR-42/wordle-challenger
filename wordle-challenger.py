@@ -141,50 +141,54 @@ class Game:
             index_in_possibleletters = [letter in self.letters for letter in index_letters]
             self.possible_solutions_df = self.possible_solutions_df[index_in_possibleletters]
 
-# Carry out one round of Wordle Challenger
+# Carry out one turn of Worlde Challenger
+def game_turn(target, guess):
+    guess_letters = list(guess)
+    target_letters = list(target)
+
+    # Dictionary of turn results at each index
+    results_dict = {}
+    for i in range(5):
+        results_dict[i] = None
+
+    # Assign correct letters with a green square
+    for index, letter in enumerate(guess_letters):
+        if letter == target_letters[index]:
+            results_dict[index] = "🟩"
+
+    # If remaining letters appear in the target word, assign a yellow square
+    # Else assign a white square
+    remaining_positions = [key for key, value in results_dict.items() if value is None]
+    # Guess is correct
+    if len(remaining_positions) == 0:
+        return ['🟩', '🟩', '🟩', '🟩', '🟩']
+    else:
+        remaining_guess_letters = [[guess_letters[i], i] for i in remaining_positions]
+        remaining_target_letters = [target_letters[i] for i in remaining_positions]
+        target_lettercount_dict = Counter(remaining_target_letters)
+
+        # Check if remaining guess letters appear in the target word
+        for [letter, position] in remaining_guess_letters:
+            if target_lettercount_dict[letter] > 0:
+                target_lettercount_dict[letter] -= 1
+                results_dict[position] = "🟨"
+            else:
+                results_dict[position] = "⬜"
+        
+        return list(results_dict.values())
+
+# Carry out one game of Wordle Challenger
 def game_play(target, possible_words_df):
     assert len(target) == 5, "Target must be 5 letters long"
     assert all(possible_words_df.columns == ['Letter_1', 'Letter_2', 'Letter_3', 'Letter_4', 'Letter_5', 'Word'])
 
     NewGame = Game(possible_words_df)
-    target_letters = list(target)
     computer_guesses = []
 
     for turn in range(6):
         # Starting guess = word with highest frequency score for all letters
         guess = NewGame.guess().iloc[0]["Word"]
-        guess_letters = list(guess)
-
-        # Dictionary of turn results at each index
-        results_dict = {}
-        for i in range(5):
-            results_dict[i] = None
-
-        # Assign correct letters with a green square
-        for index, letter in enumerate(guess_letters):
-            if letter == target_letters[index]:
-                results_dict[index] = "🟩"
-
-        # If remaining letters appear in the target word, assign a yellow square
-        # Else assign a white square
-        remaining_positions = [key for key, value in results_dict.items() if value is None]
-        # Guess is correct
-        if len(remaining_positions) == 0:
-            results = ['🟩', '🟩', '🟩', '🟩', '🟩']
-        else:
-            remaining_guess_letters = [[guess_letters[i], i] for i in remaining_positions]
-            remaining_target_letters = [target_letters[i] for i in remaining_positions]
-            target_lettercount_dict = Counter(remaining_target_letters)
-
-            # Check if remaining guess letters appear in the target word
-            for [letter, position] in remaining_guess_letters:
-                if target_lettercount_dict[letter] > 0:
-                    target_lettercount_dict[letter] -= 1
-                    results_dict[position] = "🟨"
-                else:
-                    results_dict[position] = "⬜"
-            
-            results = list(results_dict.values())
+        results = game_turn(target, guess)
     
         # Ask user to enter a guess at each turn
         # Ensure guess is 5 letters long and falls within the valid guess list
@@ -198,18 +202,7 @@ def game_play(target, possible_words_df):
             else:
                 break
 
-        user_results = []
-        user_target_list = list(target)
-
-        # Create results for each user guess
-        for i in range(len(user_guess)):
-            if user_guess[i] == user_target_list[i]:
-                user_results.append('🟩')
-                user_target_list[i] = " " 
-            elif user_guess[i] in user_target_list:
-                user_results.append('🟨')
-            else:
-                user_results.append('⬜')
+        user_results = game_turn(target, user_guess)
 
         computer_guesses.append(guess)
         
