@@ -1,9 +1,7 @@
-import copy
 import re
 import numpy as np
 import pandas as pd
-import random
-from collections import Counter, defaultdict
+from collections import Counter
 from random import randint
 
 # Official Wordle game allows users to guess from 12966 valid words
@@ -29,13 +27,13 @@ class Game:
         # Store correct letters placed in the wrong location
         self.misplaced_letters = Counter()
         # Possible solutions
-        self.possible_solutions_df = solutions_all_df.copy(deep=True)
+        self.possible_solutions_df = solutions_all_df
         # Dictionary of possible solutions in a game as we learn more about the word
-        self.letters_dict = defaultdict(str)
+        self.letters_dict = {}
         for i in range(5):
             self.letters_dict[i+1] = None
         # Dictionary of letters counts at each index as learn more about the word
-        self.count_letters_dict = defaultdict(str)
+        self.count_letters_dict = {}
         for i in range(5):
             self.count_letters_dict[i+1] = Counter(solutions_all_df[f'Letter_{i+1}'])
 
@@ -141,7 +139,7 @@ class Game:
         for index in to_solve:
             index_letters = self.possible_solutions_df[f'Letter_{index}']
             index_in_possibleletters = [letter in self.letters for letter in index_letters]
-            self.possible_solutions_df = self.possible_solutions_df[index_in_possibleletters].copy(deep=True)
+            self.possible_solutions_df = self.possible_solutions_df[index_in_possibleletters]
 
 # Carry out one round of Wordle Challenger
 def game_play(target, possible_words_df):
@@ -150,6 +148,7 @@ def game_play(target, possible_words_df):
 
     NewGame = Game(possible_words_df)
     target_letters = list(target)
+    computer_guesses = []
 
     for turn in range(6):
         # Starting guess = word with highest frequency score for all letters
@@ -157,7 +156,7 @@ def game_play(target, possible_words_df):
         guess_letters = list(guess)
 
         # Dictionary of turn results at each index
-        results_dict = defaultdict(str)
+        results_dict = {}
         for i in range(5):
             results_dict[i] = None
 
@@ -171,7 +170,7 @@ def game_play(target, possible_words_df):
         remaining_positions = [key for key, value in results_dict.items() if value is None]
         # Guess is correct
         if len(remaining_positions) == 0:
-            results = "['🟩', '🟩', '🟩', '🟩', '🟩']"
+            results = ['🟩', '🟩', '🟩', '🟩', '🟩']
         else:
             remaining_guess_letters = [[guess_letters[i], i] for i in remaining_positions]
             remaining_target_letters = [target_letters[i] for i in remaining_positions]
@@ -187,14 +186,62 @@ def game_play(target, possible_words_df):
             
             results = list(results_dict.values())
     
-        print(f'Turn {turn+1}')
-        print(guess)
-        print(f'{results}')
-        if results == "['🟩', '🟩', '🟩', '🟩', '🟩']":
-            print(f'Game won in {turn + 1} turns!')
+        # Ask user to enter a guess at each turn
+        # Ensure guess is 5 letters long and falls within the valid guess list
+        while True:
+            user_guess = input(f'Turn {turn+1} Guess: ').upper()
+            if len(user_guess) != 5:
+                print("Your guess must be 5 letters long")
+                continue
+            elif user_guess not in possible_guess_list:
+                print("Please enter a valid word")
+            else:
+                break
+
+        user_results = []
+        user_target_list = list(target)
+
+        # Create results for each user guess
+        for i in range(len(user_guess)):
+            if user_guess[i] == user_target_list[i]:
+                user_results.append('🟩')
+                user_target_list[i] = " " 
+            elif user_guess[i] in user_target_list:
+                user_results.append('🟨')
+            else:
+                user_results.append('⬜')
+
+        computer_guesses.append(guess)
+        
+        print(f'You: {user_results}' + "         " + f'Computer: {results}')    
+        
+        if user_results == ['🟩', '🟩', '🟩', '🟩', '🟩'] and results == ['🟩', '🟩', '🟩', '🟩', '🟩']:
+            print()
+            print(f'You tied! The word was: {target}')
+            print(f'The computer guessed: {computer_guesses}')
+            print("Good work!")
+            print()
             return
-        if turn == 5:
-            print(f'Unsolved :( The word was {target}.')
+        elif user_results == ['🟩', '🟩', '🟩', '🟩', '🟩']:
+            print()
+            print(f'You won! The word was: {target}')
+            print(f'The computer guessed: {computer_guesses}')
+            print("Nice job :)")
+            print()
+            return
+        elif results == ['🟩', '🟩', '🟩', '🟩', '🟩']:
+            print()
+            print(f'You lost! The word was: {target}')
+            print(f'The computer guessed: {computer_guesses}')
+            print("Better luck next time!")
+            print()
+            return
+        elif turn == 5:
+            print()
+            print(f'You both lost :( The word was: {target}.')
+            print(f'The computer guessed: {computer_guesses}')
+            print("Better luck next time!")
+            print()
             return
 
         NewGame.update(guess, results)
@@ -202,5 +249,3 @@ def game_play(target, possible_words_df):
 rand = randint(0, len(possible_solution_list) - 1)
 target = possible_solution_list[rand]
 game_play(target, solutions_df)
-
-# ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
