@@ -1,1 +1,2 @@
-# wordle-challenger
+# Wordle Challenger
+This Wordle challenger mimics the traditional Wordle game (developed by Josh Wardle) but adds a competitive twist. Challenge (and maybe even improve) your Wordle skills by competing against the computer! 
